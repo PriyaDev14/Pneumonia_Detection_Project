@@ -1,0 +1,73 @@
+from google.colab import drive
+drive.mount('/content/drive')
+
+import tensorflow as tf
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras import layers, models
+import matplotlib.pyplot as plt
+
+base_path = "/content/drive/MyDrive/pneumonia_dataset/chest_xray"
+
+train_path = base_path + "/train"
+test_path = base_path + "/test"
+val_path = base_path + "/val"
+
+train_datagen = ImageDataGenerator(
+    rescale=1./255,
+    shear_range=0.2,
+    zoom_range=0.2,
+    horizontal_flip=True
+)
+
+test_datagen = ImageDataGenerator(rescale=1./255)
+
+train_data = train_datagen.flow_from_directory(
+    train_path,
+    target_size=(224,224),
+    batch_size=32,
+    class_mode='binary'
+)
+
+test_data = test_datagen.flow_from_directory(
+    test_path,
+    target_size=(224,224),
+    batch_size=32,
+    class_mode='binary'
+)
+
+model = models.Sequential()
+
+model.add(layers.Conv2D(32, (3,3), activation='relu', input_shape=(224,224,3)))
+model.add(layers.MaxPooling2D(2,2))
+
+model.add(layers.Conv2D(64, (3,3), activation='relu'))
+model.add(layers.MaxPooling2D(2,2))
+
+model.add(layers.Conv2D(128, (3,3), activation='relu'))
+model.add(layers.MaxPooling2D(2,2))
+
+model.add(layers.Flatten())
+model.add(layers.Dense(128, activation='relu'))
+model.add(layers.Dense(1, activation='sigmoid'))
+
+model.summary()
+
+model.compile(
+    optimizer='adam',
+    loss='binary_crossentropy',
+    metrics=['accuracy']
+)
+
+history = model.fit(
+    train_data,
+    epochs=10,
+    validation_data=test_data
+)
+
+loss, acc = model.evaluate(test_data)
+print("Test Accuracy:", acc)
+
+plt.plot(history.history['accuracy'], label='train')
+plt.plot(history.history['val_accuracy'], label='val')
+plt.legend()
+plt.show()
